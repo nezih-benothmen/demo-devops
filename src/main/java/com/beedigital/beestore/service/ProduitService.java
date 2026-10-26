@@ -19,5 +19,7 @@ public interface ProduitService {
     List<ProduitResponseDTO> rechercherParCategorie(String categorie);
 
     List<ProduitResponseDTO> rechercherParNom(String keyword);
+    List<ProduitResponseDTO> getProduitsEnRuptureDeStock();
+
 
 }

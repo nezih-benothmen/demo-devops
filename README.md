@@ -1,178 +1,141 @@
-Projet Spring Boot avec JaCoCo - Documentation
-Objectif du Projet
+# BeeStore
 
-L'objectif de ce projet est d'intégrer JaCoCo (un outil de couverture de code) dans une application Spring Boot en utilisant Maven. Ce guide documente les étapes nécessaires pour configurer Maven, Spring Boot et JaCoCo, puis générer un rapport de couverture de code après l'exécution des tests.
+BeeStore is a Spring Boot REST API for managing a product catalog. It supports product creation, retrieval, updates, deletion, search, and stock-out queries. The project includes request validation, OpenAPI documentation, health monitoring, and automated tests with JaCoCo coverage reports.
 
-Étape 1 : Configuration du Projet Maven
+## Technology stack
 
-Initialisation du Projet Maven
+- Java 17
+- Spring Boot 3.5.6
+- Maven
+- Spring Web and Spring Data JPA
+- H2 for development and tests; MySQL for production
+- springdoc OpenAPI / Swagger UI
+- JUnit, Mockito, and Cucumber
+- JaCoCo
 
-Tout d'abord, créez un projet Spring Boot avec Maven. Vous pouvez utiliser Spring Initializr ou un projet Maven existant. Le fichier clé pour la configuration de Maven est le pom.xml.
+## Requirements
 
-Configurer les Dépendances et Plugins dans le pom.xml
+- JDK 17 or later
+- No separate Maven installation is required when using the included Maven Wrapper
+- MySQL is required only when running with the `prod` profile
 
-Ajoutez les dépendances nécessaires pour Spring Boot, JaCoCo, et les autres outils de développement et de tests :
+## Run locally
 
-<dependencies>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.11</version>
-    </dependency>
-</dependencies>
+The default `dev` profile uses an in-memory H2 database. Start the application from the repository root:
 
+```powershell
+.\mvnw.cmd spring-boot:run
+```
 
-Configurer les Propriétés Java
+Or, on macOS/Linux:
 
-Dans la section <properties>, assurez-vous de spécifier la version de Java utilisée pour le projet :
+```bash
+./mvnw spring-boot:run
+```
 
-<properties>
-    <java.version>17</java.version>
-</properties>
+The API listens on `http://localhost:8080`. The development H2 console is available at `http://localhost:8080/h2-console`.
 
-Étape 2 : Ajouter et Configurer le Plugin JaCoCo
+The development database is recreated when the application stops, so its data is temporary.
 
-Ajouter JaCoCo au pom.xml
+## API
 
-Ajoutez la configuration du plugin JaCoCo dans la section <build> du pom.xml :
+All product endpoints use the `/api/v1/produits` base path.
 
-<build>
-    <plugins>
-        <plugin>
-            <groupId>org.jacoco</groupId>
-            <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.8.11</version>
-            <executions>
-                <execution>
-                    <id>prepare-agent</id>
-                    <goals>
-                        <goal>prepare-agent</goal>
-                    </goals>
-                    <configuration>
-                        <propertyName>surefireArgLine</propertyName>
-                        <destFile>${project.build.directory}/jacoco.exec</destFile>
-                    </configuration>
-                </execution>
+| Method | Endpoint | Description | Success |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/produits` | Create a product | `201 Created` |
+| `GET` | `/api/v1/produits` | List all products | `200 OK` |
+| `GET` | `/api/v1/produits/{id}` | Get a product by ID | `200 OK` |
+| `PUT` | `/api/v1/produits/{id}` | Update a product | `200 OK` |
+| `DELETE` | `/api/v1/produits/{id}` | Delete a product | `204 No Content` |
+| `GET` | `/api/v1/produits/search?categorie={value}` | Find products by category (case-insensitive) | `200 OK` |
+| `GET` | `/api/v1/produits/search?nom={value}` | Find products whose names contain the value (case-insensitive) | `200 OK` |
+| `GET` | `/api/v1/produits/rupture-stock` | List products with zero stock | `200 OK` |
 
-                <execution>
-                    <id>report</id>
-                    <phase>verify</phase>
-                    <goals>
-                        <goal>report</goal>
-                    </goals>
-                </execution>
+If the search endpoint receives neither `categorie` nor `nom`, it returns all products. When both are supplied, category search takes precedence.
 
-                <execution>
-                    <id>check</id>
-                    <phase>verify</phase>
-                    <goals>
-                        <goal>check</goal>
-                    </goals>
-                    <configuration>
-                        <rules>
-                            <rule>
-                                <element>BUNDLE</element>
-                                <limits>
-                                    <limit>
-                                        <counter>INSTRUCTION</counter>
-                                        <value>COVEREDRATIO</value>
-                                        <minimum>0.50</minimum>
-                                    </limit>
-                                    <limit>
-                                        <counter>BRANCH</counter>
-                                        <value>COVEREDRATIO</value>
-                                        <minimum>0.30</minimum>
-                                    </limit>
-                                </limits>
-                            </rule>
-                        </rules>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-</build>
+### Create a product
 
+The `nom`, `prix`, and `stock` fields are required. The name must contain 2–100 characters, the price must be greater than zero, and stock must be zero or greater. `description` and `categorie` are optional; their maximum lengths are 500 and 100 characters, respectively. `actif` defaults to `true`.
 
-Cette configuration prépare JaCoCo pour les tests et génère un rapport après chaque exécution de tests.
+```http
+POST /api/v1/produits
+Content-Type: application/json
+```
 
-Étape 3 : Exécution des Tests et Génération du Rapport JaCoCo
+```json
+{
+  "nom": "Clavier mécanique",
+  "description": "Clavier mécanique compact",
+  "prix": 89.9,
+  "stock": 25,
+  "categorie": "Informatique",
+  "actif": true
+}
+```
 
-Exécuter les Tests et Générer le Rapport
+The response includes the product ID and creation date in addition to its submitted fields. Invalid request data returns `400 Bad Request`; requesting or deleting a product that does not exist returns `404 Not Found`.
 
-Exécutez la commande suivante pour exécuter les tests et générer le rapport JaCoCo :
+## API documentation and health
 
-mvn clean install
+With the application running:
 
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/api-docs`
+- Actuator health: `http://localhost:8080/actuator/health`
 
-Cela va :
+## Profiles and database configuration
 
-Nettoyer le projet,
+The active profile is `dev` by default.
 
-Compiler et tester le projet,
+| Profile | Database | Schema behavior |
+| --- | --- | --- |
+| `dev` | In-memory H2 | Recreated on application start and dropped on shutdown |
+| `test` | In-memory H2 | Recreated for tests |
+| `prod` | MySQL | Hibernate updates the schema |
 
-Générer un fichier de couverture de code jacoco.exec.
+To run with the production profile, provide the database connection settings through environment variables; do not commit credentials:
 
-Accéder au Rapport JaCoCo
+```powershell
+$env:DB_URL = "jdbc:mysql://localhost:3306/beestore"
+$env:DB_USERNAME = "your-username"
+$env:DB_PASSWORD = "your-password"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=prod"
+```
 
-Le rapport généré sera dans le dossier target/site/jacoco/index.html. Ouvrez ce fichier dans votre navigateur pour consulter le rapport de couverture de code.
+The production profile expects `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` to be set.
 
-Étape 4 : Vérification du Seuil de Couverture
+## Tests and coverage
 
-Vérifier le Seuil Minimum de Couverture
+Run the test suite and build the project:
 
-Le plugin JaCoCo peut vérifier si le projet atteint un certain seuil de couverture de code. Si le seuil est violé, la commande Maven échouera.
+```powershell
+.\mvnw.cmd clean verify
+```
 
-Voici comment configurer les seuils dans le plugin JaCoCo pour les instructions et les branches :
+Or, on macOS/Linux:
 
-<execution>
-    <id>check</id>
-    <phase>verify</phase>
-    <goals>
-        <goal>check</goal>
-    </goals>
-    <configuration>
-        <rules>
-            <rule>
-                <element>BUNDLE</element>
-                <limits>
-                    <limit>
-                        <counter>INSTRUCTION</counter>
-                        <value>COVEREDRATIO</value>
-                        <minimum>0.50</minimum> <!-- Seuil de couverture des instructions -->
-                    </limit>
-                    <limit>
-                        <counter>BRANCH</counter>
-                        <value>COVEREDRATIO</value>
-                        <minimum>0.30</minimum> <!-- Seuil de couverture des branches -->
-                    </limit>
-                </limits>
-            </rule>
-        </rules>
-    </configuration>
-</execution>
+```bash
+./mvnw clean verify
+```
 
+The tests include service unit tests, controller integration tests, and a Cucumber product-creation scenario. JaCoCo generates its HTML report at `target/site/jacoco/index.html` and its XML report at `target/site/jacoco/jacoco.xml`. Coverage is reported during the test lifecycle; a coverage threshold check is not currently enabled.
 
-Résoudre les Erreurs de Couverture
+## Project structure
 
-Si les tests ne couvrent pas suffisamment de code, vous devrez ajouter des tests supplémentaires pour atteindre les seuils spécifiés.
-
-Conclusion
-
-Voici un guide détaillé sur la manière d'intégrer JaCoCo dans un projet Spring Boot à l'aide de Maven. Ce guide couvre l'ajout des dépendances nécessaires, la configuration de JaCoCo, et la génération des rapports de couverture de code. En suivant ces étapes, vous pourrez vous assurer que votre code est bien testé et couvert à un niveau adéquat.
-
-
-<img width="1919" height="395" alt="image" src="https://github.com/user-attachments/assets/dda1af61-3f94-4e0c-ac21-c42e37e2ccde" />
+```text
+src/
+├── main/
+│   ├── java/com/beedigital/beestore/
+│   │   ├── config/       # OpenAPI configuration
+│   │   ├── controller/   # REST endpoints
+│   │   ├── dto/          # API request and response models
+│   │   ├── entity/       # JPA product entity
+│   │   ├── exception/    # API errors and exception handling
+│   │   ├── repository/   # Spring Data JPA repository
+│   │   └── service/      # Product business logic
+│   └── resources/        # Application and profile configuration
+└── test/
+    ├── java/             # Unit, integration, and Cucumber tests
+    └── resources/        # Test configuration and feature scenarios
+```

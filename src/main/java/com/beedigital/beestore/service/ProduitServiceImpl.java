@@ -131,5 +131,11 @@ public class ProduitServiceImpl implements ProduitService {
                 .dateCreation(p.getDateCreation())
                 .build();
     }
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProduitResponseDTO> getProduitsEnRuptureDeStock() {
+        return produitRepository.findByStock(0)
+                .stream().map(this::mapToResponseDTO).collect(Collectors.toList());
+    }
 
 }
