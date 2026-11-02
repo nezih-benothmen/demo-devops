@@ -6,6 +6,7 @@ import com.beedigital.beestore.service.ProduitService;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,4 +38,6 @@ public class ProduitStepDefinitions {
     public void leProduitCreeAPourNom(String nomAttendu) {
         assertThat(produitCree.getNom()).isEqualTo(nomAttendu);
     }
+
+
 }
