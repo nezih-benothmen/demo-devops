@@ -1,0 +1,2 @@
+697e26dcc3962fda67928216c011dcf1da1e5706
+clean verify sonar:sonar -Dsonar.token=697e26dcc3962fda67928216c011dcf1da1e5706

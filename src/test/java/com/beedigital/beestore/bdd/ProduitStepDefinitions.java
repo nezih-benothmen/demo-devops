@@ -3,10 +3,7 @@ package com.beedigital.beestore.bdd;
 import com.beedigital.beestore.dto.ProduitRequestDTO;
 import com.beedigital.beestore.dto.ProduitResponseDTO;
 import com.beedigital.beestore.service.ProduitService;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.When;
-import org.junit.jupiter.api.Test;
+import io.cucumber.java.en.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThat;
